@@ -1,0 +1,64 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#ffffff', 'primaryTextColor':'#000000', 'primaryBorderColor':'#000000', 'lineColor':'#000000', 'secondBkgColor':'#ffffff', 'tertiaryColor':'#f9f9f9'}, 'flowchart': {'htmlLabels': true}}}%%
+
+graph TB
+    subgraph Actors["ACTORS"]
+        MFG["🏭 Manufacturer"]
+        DIST["📦 Distributor"]
+        SELLER["🛒 Seller"]
+        CUST["👥 Customer"]
+    end
+    
+    subgraph System["ATHEEQ - BLANKET SUPPLY CHAIN SYSTEM"]
+        UC1["Register Account"]
+        UC2["Create/Manage Blankets"]
+        UC3["Place Order to Distributor"]
+        UC4["Place Broadcast Order"]
+        UC5["Accept Seller Order"]
+        UC6["Manage Inventory"]
+        UC7["View Orders"]
+        UC8["Update Order Status"]
+        UC9["Cancel Order"]
+        UC10["View Dashboard"]
+        UC11["Sell from Inventory"]
+    end
+    
+    MFG -->|Uses| UC1
+    MFG -->|Uses| UC2
+    MFG -->|Uses| UC6
+    MFG -->|Uses| UC10
+    
+    DIST -->|Uses| UC1
+    DIST -->|Uses| UC3
+    DIST -->|Uses| UC5
+    DIST -->|Uses| UC6
+    DIST -->|Uses| UC7
+    DIST -->|Uses| UC8
+    DIST -->|Uses| UC10
+    
+    SELLER -->|Uses| UC1
+    SELLER -->|Uses| UC4
+    SELLER -->|Uses| UC6
+    SELLER -->|Uses| UC7
+    SELLER -->|Uses| UC9
+    SELLER -->|Uses| UC10
+    SELLER -->|Uses| UC11
+    
+    CUST -->|Uses| UC11
+    
+    style Actors fill:#ffffff,stroke:#000,color:#000,stroke-width:2px
+    style System fill:#ffffff,stroke:#000,color:#000,stroke-width:2px
+    style MFG fill:#f9f9f9,stroke:#000,color:#000,stroke-width:2px
+    style DIST fill:#f9f9f9,stroke:#000,color:#000,stroke-width:2px
+    style SELLER fill:#f9f9f9,stroke:#000,color:#000,stroke-width:2px
+    style CUST fill:#f9f9f9,stroke:#000,color:#000,stroke-width:2px
+    style UC1 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC2 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC3 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC4 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC5 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC6 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC7 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC8 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC9 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC10 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px
+    style UC11 fill:#ffffff,stroke:#000,color:#000,stroke-width:1px

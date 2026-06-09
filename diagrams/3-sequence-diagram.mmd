@@ -1,0 +1,62 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#ffffff', 'primaryTextColor':'#000000', 'primaryBorderColor':'#000000', 'lineColor':'#000000', 'secondBkgColor':'#ffffff', 'tertiaryColor':'#f9f9f9', 'noteBkgColor':'#f9f9f9', 'noteBorderColor':'#000000'}, 'sequence': {'actorFontSize': 14, 'actorMargin': 50}}}%%
+
+sequenceDiagram
+    actor Seller as 🛒 Seller
+    participant System as ATHEEQ System
+    participant MFG_DB as 🏭 Manufacturer DB
+    participant DIST_DB as 📦 Distributor DB
+    participant Distributor as 📦 Distributor
+    actor Customer as 👥 Customer
+    
+    Seller->>System: 1. Place Order (Broadcast)
+    activate System
+    System->>MFG_DB: Check Blanket Stock
+    alt Stock Available
+        System->>MFG_DB: Deduct from Manufacturer
+        System->>System: Create SellerOrder (Pending)
+        System-->>Seller: ✓ Order Placed
+    else Insufficient Stock
+        System-->>Seller: ✗ Insufficient Stock
+    end
+    deactivate System
+    
+    Note over System: Order Broadcasted to All Distributors
+    
+    Distributor->>System: 2. View Pending Orders
+    System-->>Distributor: List Available Orders
+    
+    Distributor->>DIST_DB: Check Inventory
+    alt Distributor has Stock
+        Distributor->>System: 3. Accept Seller Order
+        activate System
+        System->>DIST_DB: Validate Available Qty
+        alt Stock Available
+            System->>DIST_DB: Reserve Stock
+            System->>DIST_DB: Add to Seller Inventory
+            System->>System: Update SellerOrder (Accepted)
+            System-->>Distributor: ✓ Order Accepted
+            System-->>Seller: ✓ Accepted by Distributor
+        else Insufficient
+            System-->>Distributor: ✗ Insufficient Stock
+        end
+        deactivate System
+    else No Stock
+        Distributor->>System: Cannot Accept
+    end
+    
+    Distributor->>System: 4. Fulfill/Ship Order
+    activate System
+    System->>DIST_DB: Deduct Inventory (Final)
+    System->>System: Update Status (Fulfilled)
+    System-->>Distributor: ✓ Fulfilled
+    System-->>Seller: ✓ Shipped/Delivered
+    deactivate System
+    
+    Seller->>DIST_DB: 5. Sell from Inventory
+    activate DIST_DB
+    DIST_DB->>DIST_DB: Deduct Seller Qty
+    DIST_DB-->>Seller: ✓ Sale Recorded
+    deactivate DIST_DB
+    
+    Seller->>Customer: Deliver Blanket
+    Customer->>Seller: Payment

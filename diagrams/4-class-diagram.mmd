@@ -1,0 +1,148 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#ffffff', 'primaryTextColor':'#000000', 'primaryBorderColor':'#000000', 'lineColor':'#000000', 'secondBkgColor':'#ffffff', 'tertiaryColor':'#f9f9f9'}, 'class': {'fontSize': 13}}}%%
+
+classDiagram
+    class Blanket {
+        -int id
+        -string name
+        -int quantity
+        -string material
+        -string size
+        -string color
+        -float price
+        -string front_image
+        -string back_image
+        -datetime created_at
+        -datetime updated_at
+        +to_dict() dict
+    }
+    
+    class Distributor {
+        -int id
+        -string name
+        -string email
+        -string phone
+        -string address
+        -datetime registration_date
+        +register() void
+        +to_dict() dict
+    }
+    
+    class DistributorOrder {
+        -int id
+        -string order_number
+        -int distributor_id FK
+        -int blanket_id FK
+        -string blanket_name
+        -int quantity
+        -float unit_price
+        -float total_amount
+        -string status
+        -datetime order_date
+        -datetime shipped_date
+        -datetime delivered_date
+        +place_order() void
+        +update_status() void
+        +cancel_order() void
+        +to_dict() dict
+    }
+    
+    class DistributorInventory {
+        -int id
+        -int distributor_id FK
+        -int blanket_id FK
+        -string blanket_name
+        -int quantity
+        -int reserved_quantity
+        -int reorder_level
+        -datetime last_updated
+        +update_stock() void
+        +reserve_stock() void
+        +get_available_qty() int
+        +to_dict() dict
+    }
+    
+    class Seller {
+        -int id
+        -string business_name
+        -string owner_name
+        -string email
+        -string phone
+        -string address
+        -string store_type
+        -string website
+        -datetime registration_date
+        -boolean is_active
+        +register() void
+        +get_dashboard() dict
+        +to_dict() dict
+    }
+    
+    class SellerOrder {
+        -int id
+        -string order_number
+        -int seller_id FK
+        -int blanket_id FK
+        -string blanket_name
+        -int quantity
+        -float unit_price
+        -float selling_price
+        -float total_amount
+        -int accepted_distributor_id FK
+        -string status
+        -datetime order_date
+        -datetime accepted_date
+        -datetime delivered_date
+        -string payment_status
+        +place_order() void
+        +accept_order() void
+        +cancel_order() void
+        +fulfill_order() void
+        +to_dict() dict
+    }
+    
+    class SellerInventory {
+        -int id
+        -int seller_id FK
+        -int blanket_id FK
+        -string blanket_name
+        -int quantity
+        -float purchased_price
+        -float selling_price
+        -datetime last_updated
+        +add_stock() void
+        +sell_stock() void
+        +get_quantity() int
+        +to_dict() dict
+    }
+    
+    class OrderManager {
+        +place_order(data) Order
+        +accept_order(order_id) Order
+        +update_status(order_id, status) Order
+        +cancel_order(order_id) Order
+        +get_order_details(order_id) dict
+    }
+    
+    class InventoryManager {
+        +update_inventory(inv_id, qty) void
+        +reserve_stock(inv_id, qty) void
+        +get_available_quantity(inv_id) int
+        +check_reorder_level(inv_id) bool
+    }
+    
+    Blanket "1" -- "*" DistributorOrder : ordered_in
+    Blanket "1" -- "*" SellerOrder : ordered_in
+    Blanket "1" -- "*" DistributorInventory : stored_in
+    Blanket "1" -- "*" SellerInventory : stored_in
+    
+    Distributor "1" -- "*" DistributorOrder : places
+    Distributor "1" -- "*" DistributorInventory : manages
+    Distributor "1" -- "*" SellerOrder : fulfills
+    
+    Seller "1" -- "*" SellerOrder : places
+    Seller "1" -- "*" SellerInventory : manages
+    
+    DistributorOrder --> OrderManager : uses
+    SellerOrder --> OrderManager : uses
+    DistributorInventory --> InventoryManager : uses
+    SellerInventory --> InventoryManager : uses

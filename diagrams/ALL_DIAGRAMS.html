@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATHEEQ - System Diagrams</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #000;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background-color: #fff;
+            border: 2px solid #000;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            border-radius: 8px;
+        }
+        
+        header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #000;
+        }
+        
+        header p {
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .diagrams {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+        }
+        
+        .diagram-card {
+            background-color: #fff;
+            border: 2px solid #000;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
+        }
+        
+        .diagram-card h2 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #000;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+        
+        .diagram-card .description {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        
+        .mermaid svg {
+            background-color: white;
+        }
+        
+        .export-info {
+            background-color: #f9f9f9;
+            border-left: 4px solid #000;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .diagram-card {
+                page-break-inside: avoid;
+                box-shadow: none;
+                margin-bottom: 40px;
+            }
+            .export-info {
+                display: none;
+            }
+        }
+        
+        footer {
+            background-color: #fff;
+            border: 2px solid #000;
+            padding: 20px;
+            margin-top: 40px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏭 ATHEEQ Blanket Supply Chain System</h1>
+            <p>System Architecture Diagrams - White Background, Black & White Design</p>
+        </header>
+        
+        <div class="diagrams">
+            <!-- DIAGRAM 1: USE CASE -->
+            <div class="diagram-card">
+                <h2>1️⃣ USE CASE DIAGRAM</h2>
+                <p class="description">Shows all actors and their interactions with the system</p>
+                <div class="mermaid">
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#ffffff', 'primaryTextColor':'#000000', 'primaryBorderColor':'#000000', 'lineColor':'#000000', 'secondBkgColor':'#ffffff', 'tertiaryColor':'#f9f9f9'}, 'flowchart': {'htmlLabels': true}}}%%
+
+graph TB
+    subgraph Actors["ACTORS"]
+        MFG["🏭 Manufacturer"]
+        DIST["📦 Distributor"]
+        SELLER["🛒 Seller"]
+        CUST["👥 Customer"]
+    end
+    
+    subgraph System["ATHEEQ SYSTEM"]
+        UC1["Register Account"]
+        UC2["Create/Manage Blankets"]
+        UC3["Place Order to Distributor"]
+        UC4["Place Broadcast Order"]
+        UC5["Accept Seller Order"]
+        UC6["Manage Inventory"]
+        UC7["View Orders"]
+        UC8["Update Order Status"]
+        UC9["Cancel Order"]
+        UC10["View Dashboard"]
+        UC11["Sell from Inventory"]
+    end
+    
+    MFG -->|Uses| UC1
+    MFG -->|Uses| UC2
+    MFG -->|Uses| UC6
+    MFG -->|Uses| UC10
+    
+    DIST -->|Uses| UC1
+    DIST -->|Uses| UC3
+    DIST -->|Uses| UC5
+    DIST -->|Uses| UC6
+    DIST -->|Uses| UC7
+    DIST -->|Uses| UC8
+    DIST -->|Uses| UC10
+    
+    SELLER -->|Uses| UC1
+    SELLER -->|Uses| UC4
+    SELLER -->|Uses| UC6
+    SELLER -->|Uses| UC7
+    SELLER -->|Uses| UC9
+    SELLER -->|Uses| UC10
+    SELLER -->|Uses| UC11
+    
+    CUST -->|Uses| UC11
+                </div>
+                <div class="export-info">
+                    💡 To export as PNG: Right-click the diagram → Save image as PNG
+                </div>
+            </div>
+            
+            <!-- DIAGRAM 2: ER DIAGRAM -->
+            <div class="diagram-card">
+                <h2>2️⃣ ENTITY RELATIONSHIP (ER) DIAGRAM</h2>
+                <p class="description">Database schema with all entities and their relationships</p>
+                <div class="mermaid">
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#ffffff', 'primaryTextColor':'#000000', 'primaryBorderColor':'#000000', 'lineColor':'#000000', 'secondBkgColor':'#ffffff', 'tertiaryColor':'#f9f9f9'}, 'er': {'fontSize': 14}}}%%
+
+erDiagram
+    BLANKET ||--o{ DISTRIBUTOR_INVENTORY : "has"
+    BLANKET ||--o{ DISTRIBUTOR_ORDER : "in"
+    BLANKET ||--o{ SELLER_ORDER : "in"
+    BLANKET ||--o{ SELLER_INVENTORY : "in"
+    
+    DISTRIBUTOR ||--o{ DISTRIBUTOR_ORDER : "places"
+    DISTRIBUTOR ||--o{ DISTRIBUTOR_INVENTORY : "manages"
+    DISTRIBUTOR ||--o{ SELLER_ORDER : "fulfills"
+    
+    SELLER ||--o{ SELLER_ORDER : "places"
+    SELLER ||--o{ SELLER_INVENTORY : "manages"
+    
+    BLANKET {
+        int id PK
+        string name
+        int quantity
+        string material
+        float price
+        timestamp created_at
+    }
+    
+    DISTRIBUTOR {
+        int id PK
+        string name
+        string email UK
+        string phone
+    }
+    
+    DISTRIBUTOR_ORDER {
+        int id PK
+        string order_number UK
+        int distributor_id FK
+        int quantity
+        float total_amount
+        string status
+    }
+    
+    DISTRIBUTOR_INVENTORY {
+        int id PK
+        int distributor_id FK
+        int blanket_id FK
+        int quantity
+        int reserved_quantity
+    }
+    
+    SELLER {
+        int id PK
+        string business_name
+        string email UK
+        string phone
+    }
+    
+    SELLER_ORDER {
+        int id PK
+        string order_number UK
+        int seller_id FK
+        int quantity
+        float total_amount
+        int accepted_distributor_id FK
+        string status
+    }
+    
+    SELLER_INVENTORY {
+        int id PK
+        int seller_id FK
+        int blanket_id FK
+        int quantity
+        float selling_price
+    }
+                </div>
+                <div class="export-info">
+                    💡 Key: PK = Primary Key, FK = Foreign Key, UK = Unique Key
+                </div>
+            </div>
+            
+            <!-- DIAGRAM 3: SEQUENCE DIAGRAM -->
+            <div class="diagram-card">
+                <h2>3️⃣ SEQUENCE DIAGRAM</h2>
+                <p class="description">Order broadcast and fulfillment workflow</p>
+                <div class="mermaid">
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#ffffff', 'primaryTextColor':'#000000', 'primaryBorderColor':'#000000', 'lineColor':'#000000', 'secondBkgColor':'#ffffff', 'tertiaryColor':'#f9f9f9', 'noteBkgColor':'#f9f9f9'}, 'sequence': {'actorFontSize': 12}}}%%
+
+sequenceDiagram
+    actor Seller as 🛒 Seller
+    participant System as ATHEEQ System
+    participant MFG as 🏭 Manufacturer
+    participant Distributor as 📦 Distributor
+    actor Customer as 👥 Customer
+    
+    Seller->>System: 1. Place Order (Broadcast)
+    activate System
+    System->>MFG: Check Blanket Stock
+    System->>MFG: Deduct from Manufacturer
+    System->>System: Create SellerOrder (Pending)
+    System-->>Seller: ✓ Order Placed
+    deactivate System
+    
+    Note over System: Order Broadcasted to All Distributors
+    
+    Distributor->>System: 2. View Pending Orders
+    System-->>Distributor: List Available Orders
+    
+    alt Distributor has Stock
+        Distributor->>System: 3. Accept Seller Order
+        activate System
+        System->>System: Validate Distributor Inventory
+        System->>System: Reserve Stock
+        System->>System: Add to Seller Inventory
+        System->>System: Update SellerOrder (Accepted)
+        System-->>Distributor: ✓ Accepted
+        System-->>Seller: ✓ Accepted by Distributor
+        deactivate System
+    end
+    
+    Distributor->>System: 4. Fulfill/Ship Order
+    activate System
+    System->>System: Update Status (Fulfilled)
+    System-->>Distributor: ✓ Fulfilled
+    System-->>Seller: ✓ Shipped/Delivered
+    deactivate System
+    
+    Seller->>Seller: 5. Sell from Inventory
+    Seller->>Customer: Deliver Blanket
+                </div>
+                <div class="export-info">
+                    💡 Shows complete workflow: Order Placement → Broadcasting → Acceptance → Fulfillment
+                </div>
+            </div>
+            
+            <!-- DIAGRAM 4: CLASS DIAGRAM -->
+            <div class="diagram-card">
+                <h2>4️⃣ CLASS DIAGRAM</h2>
+                <p class="description">System classes, attributes, methods, and relationships</p>
+                <div class="mermaid">
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#ffffff', 'primaryTextColor':'#000000', 'primaryBorderColor':'#000000', 'lineColor':'#000000', 'secondBkgColor':'#ffffff', 'tertiaryColor':'#f9f9f9'}, 'class': {'fontSize': 11}}}%%
+
+classDiagram
+    class Blanket {
+        -int id
+        -string name
+        -int quantity
+        -float price
+        +to_dict() dict
+    }
+    
+    class Distributor {
+        -int id
+        -string name
+        -string email
+        +register()
+        +to_dict()
+    }
+    
+    class DistributorOrder {
+        -int id
+        -string order_number
+        -int quantity
+        -string status
+        +place_order()
+        +cancel_order()
+    }
+    
+    class DistributorInventory {
+        -int id
+        -int quantity
+        -int reserved_quantity
+        +update_stock()
+        +reserve_stock()
+    }
+    
+    class Seller {
+        -int id
+        -string business_name
+        -string email
+        +register()
+        +get_dashboard()
+    }
+    
+    class SellerOrder {
+        -int id
+        -string order_number
+        -int quantity
+        -string status
+        +place_order()
+        +accept_order()
+        +cancel_order()
+    }
+    
+    class SellerInventory {
+        -int id
+        -int quantity
+        -float selling_price
+        +add_stock()
+        +sell_stock()
+    }
+    
+    Blanket "1" -- "*" DistributorOrder
+    Blanket "1" -- "*" SellerOrder
+    Blanket "1" -- "*" DistributorInventory
+    Blanket "1" -- "*" SellerInventory
+    
+    Distributor "1" -- "*" DistributorOrder
+    Distributor "1" -- "*" DistributorInventory
+    Distributor "1" -- "*" SellerOrder
+    
+    Seller "1" -- "*" SellerOrder
+    Seller "1" -- "*" SellerInventory
+                </div>
+                <div class="export-info">
+                    💡 Shows class structure with attributes (-), methods (+), and 1:N relationships
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p><strong>How to Export as PNG:</strong></p>
+            <p>1. Right-click on any diagram → "Save image as..." → Choose PNG format</p>
+            <p>2. Or use Print → Save as PDF → Convert PDF to PNG</p>
+            <p>3. For high-quality exports, use: <code>mermaid-cli</code> or online Mermaid render services</p>
+            <p style="margin-top: 15px;">
+                ATHEEQ System | Blanket Supply Chain Management | 2026
+            </p>
+        </footer>
+    </div>
+    
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#ffffff',
+                primaryTextColor: '#000000',
+                primaryBorderColor: '#000000',
+                lineColor: '#000000',
+                secondBkgColor: '#ffffff',
+                tertiaryColor: '#f9f9f9'
+            }
+        });
+        mermaid.contentLoaded();
+    </script>
+</body>
+</html>

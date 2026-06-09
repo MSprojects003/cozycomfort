@@ -1,0 +1,103 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#ffffff', 'primaryTextColor':'#000000', 'primaryBorderColor':'#000000', 'lineColor':'#000000', 'secondBkgColor':'#ffffff', 'tertiaryColor':'#f9f9f9'}, 'er': {'fontSize': 16}}}%%
+
+erDiagram
+    BLANKET ||--o{ DISTRIBUTOR_INVENTORY : "has"
+    BLANKET ||--o{ DISTRIBUTOR_ORDER : "in"
+    BLANKET ||--o{ SELLER_ORDER : "in"
+    BLANKET ||--o{ SELLER_INVENTORY : "in"
+    
+    DISTRIBUTOR ||--o{ DISTRIBUTOR_ORDER : "places"
+    DISTRIBUTOR ||--o{ DISTRIBUTOR_INVENTORY : "manages"
+    DISTRIBUTOR ||--o{ SELLER_ORDER : "fulfills"
+    
+    SELLER ||--o{ SELLER_ORDER : "places"
+    SELLER ||--o{ SELLER_INVENTORY : "manages"
+    
+    BLANKET {
+        int id PK
+        string name
+        int quantity
+        string material
+        string size
+        string color
+        float price
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    DISTRIBUTOR {
+        int id PK
+        string name
+        string email UK
+        string phone
+        string address
+        timestamp registration_date
+    }
+    
+    DISTRIBUTOR_ORDER {
+        int id PK
+        string order_number UK
+        int distributor_id FK
+        int blanket_id FK
+        string blanket_name
+        int quantity
+        float unit_price
+        float total_amount
+        string status
+        timestamp order_date
+        timestamp shipped_date
+        timestamp delivered_date
+    }
+    
+    DISTRIBUTOR_INVENTORY {
+        int id PK
+        int distributor_id FK
+        int blanket_id FK
+        string blanket_name
+        int quantity
+        int reserved_quantity
+        int reorder_level
+        timestamp last_updated
+    }
+    
+    SELLER {
+        int id PK
+        string business_name
+        string owner_name
+        string email UK
+        string phone
+        string address
+        string store_type
+        string website
+        timestamp registration_date
+        boolean is_active
+    }
+    
+    SELLER_ORDER {
+        int id PK
+        string order_number UK
+        int seller_id FK
+        int blanket_id FK
+        string blanket_name
+        int quantity
+        float unit_price
+        float selling_price
+        float total_amount
+        int accepted_distributor_id FK
+        string status
+        timestamp order_date
+        timestamp accepted_date
+        timestamp delivered_date
+        string payment_status
+    }
+    
+    SELLER_INVENTORY {
+        int id PK
+        int seller_id FK
+        int blanket_id FK
+        string blanket_name
+        int quantity
+        float purchased_price
+        float selling_price
+        timestamp last_updated
+    }
