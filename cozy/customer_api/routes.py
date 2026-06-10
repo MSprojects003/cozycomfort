@@ -16,20 +16,6 @@ def register_customer_routes(app):
     
     @app.route('/api/customer/register', methods=['POST'])
     def register_customer():
-        """
-        Register a new customer
-        Expected JSON:
-        {
-            "first_name": "John",
-            "last_name": "Doe",
-            "email": "john@example.com",
-            "phone": "555-1234",
-            "address": "123 Home St",
-            "city": "Metropolis",
-            "state": "ST",
-            "zip_code": "12345"
-        }
-        """
         try:
             data = request.get_json()
             
@@ -60,12 +46,9 @@ def register_customer_routes(app):
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
+    
     @app.route('/api/customer/login', methods=['POST'])
     def customer_login():
-        """
-        Customer login by email
-        Expected JSON: {"email": "john@example.com"}
-        """
         try:
             data = request.get_json()
             email = data.get('email')
@@ -82,9 +65,9 @@ def register_customer_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    
     @app.route('/api/customer/<int:customer_id>', methods=['GET'])
-    def get_customer(customer_id):
-        """Get customer details by ID"""
+    def get_customer_by_id(customer_id):
         try:
             customer = Customer.query.get(customer_id)
             if not customer:
@@ -93,129 +76,109 @@ def register_customer_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    
     # ============ BROWSE PRODUCTS ============
     
     @app.route('/api/customer/products', methods=['GET'])
-    def get_all_products_for_customers():
-        """
-        Get all available blankets for customers to browse
-        Can filter by: ?search=wool&min_price=50&max_price=100
-        """
+    def get_customer_products():
         try:
-            query = Blanket.query.filter(Blanket.quantity > 0)
+            blankets = Blanket.query.all()
             
-            # Search by name
-            search = request.args.get('search')
-            if search:
-                query = query.filter(Blanket.name.contains(search))
-            
-            # Filter by price range
-            min_price = request.args.get('min_price', type=float)
-            if min_price:
-                query = query.filter(Blanket.price >= min_price)
-            
-            max_price = request.args.get('max_price', type=float)
-            if max_price:
-                query = query.filter(Blanket.price <= max_price)
-            
-            # Filter by material
-            material = request.args.get('material')
-            if material:
-                query = query.filter(Blanket.material == material)
-            
-            # Filter by size
-            size = request.args.get('size')
-            if size:
-                query = query.filter(Blanket.size == size)
-            
-            # Filter by color
-            color = request.args.get('color')
-            if color:
-                query = query.filter(Blanket.color == color)
-            
-            # Sort
-            sort = request.args.get('sort', 'name')
-            if sort == 'price_asc':
-                query = query.order_by(Blanket.price.asc())
-            elif sort == 'price_desc':
-                query = query.order_by(Blanket.price.desc())
-            elif sort == 'newest':
-                query = query.order_by(Blanket.created_at.desc())
-            else:
-                query = query.order_by(Blanket.name.asc())
-            
-            products = query.all()
-            
-            # Get average ratings for each product
-            from database import Review
-            products_with_ratings = []
-            for product in products:
-                product_data = product.to_dict()
-                reviews = Review.query.filter_by(blanket_id=product.id).all()
-                if reviews:
-                    avg_rating = sum(r.rating for r in reviews) / len(reviews)
-                    product_data['average_rating'] = round(avg_rating, 1)
-                    product_data['review_count'] = len(reviews)
-                else:
-                    product_data['average_rating'] = None
-                    product_data['review_count'] = 0
-                products_with_ratings.append(product_data)
+            products_list = []
+            for blanket in blankets:
+                products_list.append({
+                    'id': blanket.id,
+                    'name': blanket.name,
+                    'price': blanket.price,
+                    'quantity': blanket.quantity,
+                    'material': blanket.material,
+                    'size': blanket.size,
+                    'color': blanket.color,
+                    'front_image': blanket.front_image,
+                    'back_image': blanket.back_image,
+                    'description': f"Beautiful {blanket.material} blanket in {blanket.color} color, size {blanket.size}",
+                    'in_stock': blanket.quantity > 0
+                })
             
             return jsonify({
-                'count': len(products_with_ratings),
-                'products': products_with_ratings
+                'count': len(products_list),
+                'products': products_list
             }), 200
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    
     @app.route('/api/customer/product/<int:product_id>', methods=['GET'])
-    def get_product_details(product_id):
-        """Get detailed information about a specific product"""
+    def get_customer_product_details(product_id):
         try:
-            product = Blanket.query.get(product_id)
-            if not product:
+            blanket = Blanket.query.get(product_id)
+            if not blanket:
                 return jsonify({'error': 'Product not found'}), 404
             
-            product_data = product.to_dict()
+            product_data = {
+                'id': blanket.id,
+                'name': blanket.name,
+                'price': blanket.price,
+                'quantity': blanket.quantity,
+                'material': blanket.material,
+                'size': blanket.size,
+                'color': blanket.color,
+                'front_image': blanket.front_image,
+                'back_image': blanket.back_image,
+                'description': f"Beautiful {blanket.material} blanket in {blanket.color} color, size {blanket.size}",
+                'in_stock': blanket.quantity > 0
+            }
             
-            # Get reviews for this product
-            from database import Review, Customer
             reviews = Review.query.filter_by(blanket_id=product_id).all()
-            reviews_with_customers = []
+            reviews_list = []
             for review in reviews:
                 customer = Customer.query.get(review.customer_id)
-                review_data = review.to_dict()
-                if customer:
-                    review_data['customer_name'] = customer.to_dict()['full_name']
-                reviews_with_customers.append(review_data)
+                reviews_list.append({
+                    'id': review.id,
+                    'rating': review.rating,
+                    'comment': review.comment,
+                    'customer_name': f"{customer.first_name} {customer.last_name}" if customer else 'Anonymous',
+                    'review_date': review.review_date.strftime('%Y-%m-%d %H:%M:%S') if review.review_date else None
+                })
             
-            if reviews:
-                avg_rating = sum(r.rating for r in reviews) / len(reviews)
+            product_data['reviews'] = reviews_list
+            product_data['review_count'] = len(reviews_list)
+            
+            if reviews_list:
+                avg_rating = sum(r['rating'] for r in reviews_list) / len(reviews_list)
                 product_data['average_rating'] = round(avg_rating, 1)
-                product_data['review_count'] = len(reviews)
             else:
                 product_data['average_rating'] = None
-                product_data['review_count'] = 0
-            
-            product_data['reviews'] = reviews_with_customers
             
             return jsonify({'product': product_data}), 200
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    
     # ============ SHOPPING CART ============
     
     @app.route('/api/customer/<int:customer_id>/cart', methods=['GET'])
-    def get_cart(customer_id):
-        """Get customer's shopping cart"""
+    def get_customer_cart(customer_id):
         try:
             cart_items = Cart.query.filter_by(customer_id=customer_id).all()
-            total = sum(item.quantity * item.unit_price for item in cart_items)
+            items_list = []
+            total = 0
+            
+            for item in cart_items:
+                items_list.append({
+                    'id': item.id,
+                    'product_id': item.blanket_id,
+                    'product_name': item.blanket_name,
+                    'quantity': item.quantity,
+                    'price': item.unit_price,
+                    'subtotal': item.quantity * item.unit_price
+                })
+                total += item.quantity * item.unit_price
             
             return jsonify({
-                'items': [item.to_dict() for item in cart_items],
+                'items': items_list,
                 'total_items': len(cart_items),
                 'total_quantity': sum(item.quantity for item in cart_items),
                 'total_amount': round(total, 2)
@@ -224,25 +187,18 @@ def register_customer_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    
     @app.route('/api/customer/<int:customer_id>/cart/add', methods=['POST'])
-    def add_to_cart(customer_id):
-        """
-        Add item to cart
-        Expected JSON: {"blanket_id": 1, "quantity": 2}
-        """
+    def add_to_customer_cart(customer_id):
         try:
             data = request.get_json()
-            blanket_id = data.get('blanket_id')
+            blanket_id = data.get('product_id') or data.get('blanket_id')
             quantity = data.get('quantity', 1)
             
             blanket = Blanket.query.get(blanket_id)
             if not blanket:
                 return jsonify({'error': 'Product not found'}), 404
             
-            if blanket.quantity < quantity:
-                return jsonify({'error': f'Only {blanket.quantity} items available'}), 400
-            
-            # Check if item already in cart
             cart_item = Cart.query.filter_by(
                 customer_id=customer_id,
                 blanket_id=blanket_id
@@ -264,19 +220,22 @@ def register_customer_routes(app):
             
             return jsonify({
                 'message': 'Item added to cart',
-                'cart_item': cart_item.to_dict()
+                'cart_item': {
+                    'id': cart_item.id,
+                    'product_id': cart_item.blanket_id,
+                    'product_name': cart_item.blanket_name,
+                    'quantity': cart_item.quantity,
+                    'price': cart_item.unit_price
+                }
             }), 200
             
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
+    
     @app.route('/api/customer/<int:customer_id>/cart/update', methods=['PUT'])
-    def update_cart_item(customer_id):
-        """
-        Update cart item quantity
-        Expected JSON: {"cart_id": 1, "quantity": 3}
-        """
+    def update_customer_cart_item(customer_id):
         try:
             data = request.get_json()
             cart_id = data.get('cart_id')
@@ -299,9 +258,9 @@ def register_customer_routes(app):
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
+    
     @app.route('/api/customer/<int:customer_id>/cart/remove/<int:cart_id>', methods=['DELETE'])
-    def remove_from_cart(customer_id, cart_id):
-        """Remove item from cart"""
+    def remove_from_customer_cart(customer_id, cart_id):
         try:
             cart_item = Cart.query.get(cart_id)
             if not cart_item or cart_item.customer_id != customer_id:
@@ -316,47 +275,42 @@ def register_customer_routes(app):
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
+    
     # ============ CHECKOUT & PLACE ORDER ============
     
     @app.route('/api/customer/<int:customer_id>/checkout', methods=['POST'])
-    def checkout(customer_id):
-        """
-        Checkout and place order
-        Expected JSON:
-        {
-            "seller_id": 1,
-            "payment_method": "Credit Card",
-            "shipping_address": "123 Home St, City, ST 12345",
-            "notes": "Leave at front door"
-        }
-        """
+    def customer_checkout(customer_id):
         try:
             customer = Customer.query.get(customer_id)
             if not customer:
                 return jsonify({'error': 'Customer not found'}), 404
             
-            # Get cart items
-            cart_items = Cart.query.filter_by(customer_id=customer_id).all()
-            if not cart_items:
-                return jsonify({'error': 'Cart is empty'}), 400
-            
             data = request.get_json()
-            seller_id = data.get('seller_id')
+            items = data.get('items', [])
             payment_method = data.get('payment_method', 'Credit Card')
             shipping_address = data.get('shipping_address', customer.address)
             notes = data.get('notes', '')
             
+            if not items:
+                return jsonify({'error': 'No items in order'}), 400
+            
+            seller = Seller.query.first()
+            if not seller:
+                return jsonify({'error': 'No seller available'}), 400
+            
+            seller_id = seller.id
             orders_created = []
             total_amount = 0
             
-            for cart_item in cart_items:
-                blanket = Blanket.query.get(cart_item.blanket_id)
-                if not blanket or blanket.quantity < cart_item.quantity:
-                    return jsonify({
-                        'error': f'{cart_item.blanket_name} is out of stock'
-                    }), 400
+            for item in items:
+                blanket_id = item.get('product_id')
+                quantity = item.get('quantity')
                 
-                total = cart_item.quantity * cart_item.unit_price
+                blanket = Blanket.query.get(blanket_id)
+                if not blanket:
+                    return jsonify({'error': f'Product not found'}), 404
+                
+                total = blanket.price * quantity
                 total_amount += total
                 
                 order_number = generate_customer_order_number()
@@ -365,10 +319,10 @@ def register_customer_routes(app):
                     order_number=order_number,
                     customer_id=customer_id,
                     seller_id=seller_id,
-                    blanket_id=cart_item.blanket_id,
-                    blanket_name=cart_item.blanket_name,
-                    quantity=cart_item.quantity,
-                    unit_price=cart_item.unit_price,
+                    blanket_id=blanket_id,
+                    blanket_name=blanket.name,
+                    quantity=quantity,
+                    unit_price=blanket.price,
                     total_amount=total,
                     status='Pending',
                     shipping_address=shipping_address,
@@ -377,27 +331,16 @@ def register_customer_routes(app):
                     notes=notes
                 )
                 
-                # Reduce inventory
-                blanket.quantity -= cart_item.quantity
-                
-                # Update seller inventory
-                seller_inv = SellerInventory.query.filter_by(
-                    seller_id=seller_id,
-                    blanket_id=cart_item.blanket_id
-                ).first()
-                if seller_inv:
-                    seller_inv.quantity -= cart_item.quantity
-                
                 db.session.add(new_order)
                 orders_created.append(new_order)
-                
-                # Delete cart item
-                db.session.delete(cart_item)
             
-            # Update customer stats
             customer.total_purchases += len(orders_created)
             customer.total_spent += total_amount
             
+            db.session.commit()
+            
+            # Clear cart items for this customer
+            Cart.query.filter_by(customer_id=customer_id).delete()
             db.session.commit()
             
             return jsonify({
@@ -411,11 +354,11 @@ def register_customer_routes(app):
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
+    
     # ============ VIEW ORDERS ============
     
     @app.route('/api/customer/<int:customer_id>/orders', methods=['GET'])
-    def get_customer_orders(customer_id):
-        """Get customer's order history"""
+    def get_customer_orders_list(customer_id):
         try:
             orders = CustomerOrder.query.filter_by(customer_id=customer_id)\
                 .order_by(CustomerOrder.order_date.desc()).all()
@@ -428,9 +371,9 @@ def register_customer_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    
     @app.route('/api/customer/order/<string:order_number>', methods=['GET'])
-    def get_customer_order_details(order_number):
-        """Get specific order details"""
+    def get_customer_order_by_number(order_number):
         try:
             order = CustomerOrder.query.filter_by(order_number=order_number).first()
             if not order:
@@ -441,19 +384,16 @@ def register_customer_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    
     @app.route('/api/customer/order/<string:order_number>/status', methods=['PUT'])
     def update_customer_order_status(order_number):
-        """
-        Update customer order status (for sellers)
-        Expected JSON: {"status": "Delivered"}
-        """
         try:
+            data = request.get_json()
+            new_status = data.get('status')
+            
             order = CustomerOrder.query.filter_by(order_number=order_number).first()
             if not order:
                 return jsonify({'error': 'Order not found'}), 404
-            
-            data = request.get_json()
-            new_status = data.get('status')
             
             valid_statuses = ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled']
             if new_status not in valid_statuses:
@@ -478,23 +418,14 @@ def register_customer_routes(app):
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
+    
     # ============ PRODUCT REVIEWS ============
     
     @app.route('/api/customer/<int:customer_id>/review', methods=['POST'])
-    def add_review(customer_id):
-        """
-        Add product review
-        Expected JSON:
-        {
-            "blanket_id": 1,
-            "rating": 5,
-            "comment": "Great blanket!"
-        }
-        """
+    def add_customer_review(customer_id):
         try:
             data = request.get_json()
             
-            # Check if customer actually purchased this product
             has_purchased = CustomerOrder.query.filter_by(
                 customer_id=customer_id,
                 blanket_id=data['blanket_id'],
@@ -504,7 +435,6 @@ def register_customer_routes(app):
             if not has_purchased:
                 return jsonify({'error': 'You can only review products you have purchased'}), 400
             
-            # Check if already reviewed
             existing_review = Review.query.filter_by(
                 customer_id=customer_id,
                 blanket_id=data['blanket_id']
@@ -532,11 +462,11 @@ def register_customer_routes(app):
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
+    
     # ============ CUSTOMER DASHBOARD ============
     
     @app.route('/api/customer/<int:customer_id>/dashboard', methods=['GET'])
-    def get_customer_dashboard(customer_id):
-        """Get customer dashboard with statistics"""
+    def get_customer_dashboard_stats(customer_id):
         try:
             customer = Customer.query.get(customer_id)
             if not customer:
@@ -545,13 +475,11 @@ def register_customer_routes(app):
             orders = CustomerOrder.query.filter_by(customer_id=customer_id).all()
             reviews = Review.query.filter_by(customer_id=customer_id).all()
             
-            # Order statistics
             total_orders = len(orders)
             total_spent = sum(order.total_amount for order in orders)
             pending_orders = len([o for o in orders if o.status == 'Pending'])
             delivered_orders = len([o for o in orders if o.status == 'Delivered'])
             
-            # Recent orders
             recent_orders = CustomerOrder.query.filter_by(customer_id=customer_id)\
                 .order_by(CustomerOrder.order_date.desc()).limit(5).all()
             
@@ -570,11 +498,11 @@ def register_customer_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    
     # ============ FILTER OPTIONS ============
     
     @app.route('/api/customer/filters', methods=['GET'])
-    def get_filter_options():
-        """Get available filter options for products"""
+    def get_customer_filter_options():
         try:
             materials = db.session.query(Blanket.material.distinct()).filter(Blanket.material != '').all()
             sizes = db.session.query(Blanket.size.distinct()).filter(Blanket.size != '').all()

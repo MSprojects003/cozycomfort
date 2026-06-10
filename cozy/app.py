@@ -4,6 +4,7 @@ from database import db, Blanket
 from manufacturer_api.routes import register_manufacturer_routes
 from distributor_api.routes import register_distributor_routes, register_distributor_seller_routes
 from seller_api.routes import register_seller_routes
+from customer_api.routes import register_customer_routes
 import os
 
 app = Flask(__name__)
@@ -28,8 +29,9 @@ register_manufacturer_routes(app)
 register_distributor_routes(app)
 register_distributor_seller_routes(app)
 register_seller_routes(app)
+register_customer_routes(app)
 
-# Create database tables (without adding sample data)
+# Create database tables
 with app.app_context():
     db.create_all()
     print("✓ Database tables ready!")

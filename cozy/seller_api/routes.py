@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from database import db, Seller, SellerOrder, SellerInventory, Blanket, Distributor
+from database import db, Seller, SellerOrder, SellerInventory, Blanket, Distributor, CustomerOrder, Customer
 from datetime import datetime, timedelta
 import random
 import string
@@ -60,7 +60,7 @@ def register_seller_routes(app):
     
     
     @app.route('/api/seller/<int:seller_id>', methods=['GET'])
-    def get_seller(seller_id):
+    def get_seller_by_id(seller_id):
         try:
             seller = Seller.query.get(seller_id)
             if not seller:
@@ -70,19 +70,14 @@ def register_seller_routes(app):
             return jsonify({'error': str(e)}), 500
     
     
-    # ============ VIEW AVAILABLE BLANKETS (for seller to order) ============
+    # ============ VIEW AVAILABLE BLANKETS ============
     
     @app.route('/api/seller/available-blankets', methods=['GET'])
     def get_available_blankets_for_seller():
-        """Get all blankets available from manufacturers"""
         try:
-            # Show all blankets that have quantity > 0 in manufacturer
             available_blankets = Blanket.query.filter(Blanket.quantity > 0).all()
-            
-            # Get all distributors
             distributors = Distributor.query.all()
             
-            # For each blanket, show available distributors
             result = []
             for blanket in available_blankets:
                 blanket_data = blanket.to_dict()
@@ -101,10 +96,6 @@ def register_seller_routes(app):
     
     @app.route('/api/seller/place-order', methods=['POST'])
     def place_seller_order():
-        """
-        Seller places order - BROADCAST to ALL distributors
-        Do NOT update seller inventory here - only when distributor accepts
-        """
         try:
             data = request.get_json()
             
@@ -131,7 +122,6 @@ def register_seller_routes(app):
                 if not blanket:
                     return jsonify({'error': f'Blanket ID {blanket_id} not found'}), 404
                 
-                # Check manufacturer stock
                 if blanket.quantity < quantity:
                     return jsonify({
                         'error': f'Insufficient stock from manufacturer for {blanket.name}. Available: {blanket.quantity}'
@@ -143,8 +133,6 @@ def register_seller_routes(app):
                 
                 order_number = generate_seller_order_number()
                 
-                # Create order - NO distributor_id, only seller_id
-                # accepted_distributor_id will be NULL until a distributor accepts
                 new_order = SellerOrder(
                     order_number=order_number,
                     seller_id=seller_id,
@@ -159,10 +147,7 @@ def register_seller_routes(app):
                     accepted_distributor_id=None
                 )
                 
-                # Reduce manufacturer inventory
                 blanket.quantity -= quantity
-                
-                # DO NOT update seller inventory here - wait for distributor acceptance
                 
                 db.session.add(new_order)
                 orders_created.append(new_order)
@@ -198,7 +183,6 @@ def register_seller_routes(app):
             limit = request.args.get('limit', 100, type=int)
             orders = query.order_by(SellerOrder.order_date.desc()).limit(limit).all()
             
-            # Add accepted distributor name if order is accepted
             orders_data = []
             for order in orders:
                 order_dict = order.to_dict()
@@ -245,12 +229,10 @@ def register_seller_routes(app):
             if order.status not in ['Pending']:
                 return jsonify({'error': f'Cannot cancel order with status: {order.status}'}), 400
             
-            # Return stock to manufacturer
             blanket = Blanket.query.get(order.blanket_id)
             if blanket:
                 blanket.quantity += order.quantity
             
-            # Remove from seller inventory
             inventory = SellerInventory.query.filter_by(
                 seller_id=order.seller_id,
                 blanket_id=order.blanket_id
@@ -275,26 +257,19 @@ def register_seller_routes(app):
             return jsonify({'error': str(e)}), 500
     
     
-    # ============ SELLER INVENTORY (Shows 0 for products not in inventory) ============
+    # ============ SELLER INVENTORY ============
     
     @app.route('/api/seller/<int:seller_id>/inventory', methods=['GET'])
     def get_seller_inventory(seller_id):
-        """
-        Get seller's inventory - shows 0 for products not yet purchased
-        """
         try:
             seller = Seller.query.get(seller_id)
             if not seller:
                 return jsonify({'error': 'Seller not found'}), 404
             
-            # Get all blankets from manufacturer
             all_blankets = Blanket.query.all()
-            
-            # Get seller's existing inventory
             existing_inventory = SellerInventory.query.filter_by(seller_id=seller_id).all()
             existing_dict = {inv.blanket_id: inv for inv in existing_inventory}
             
-            # Build complete inventory list (including products with 0 quantity)
             inventory_list = []
             for blanket in all_blankets:
                 if blanket.id in existing_dict:
@@ -310,7 +285,6 @@ def register_seller_routes(app):
                         'last_updated': inv.last_updated.strftime('%Y-%m-%d %H:%M:%S') if inv.last_updated else None
                     })
                 else:
-                    # Product not in inventory yet - show 0 quantity
                     inventory_list.append({
                         'id': None,
                         'seller_id': seller_id,
@@ -334,7 +308,6 @@ def register_seller_routes(app):
     
     @app.route('/api/seller/<int:seller_id>/inventory/sell', methods=['POST'])
     def sell_from_inventory(seller_id):
-        """Record a sale from seller's inventory"""
         try:
             seller = Seller.query.get(seller_id)
             if not seller:
@@ -390,7 +363,6 @@ def register_seller_routes(app):
             fulfilled_orders = len([o for o in orders if o.status in ['Delivered', 'Fulfilled']])
             total_spent = sum(order.total_amount for order in orders)
             
-            # Get all inventory (including zero quantity items)
             all_blankets = Blanket.query.all()
             existing_inventory = SellerInventory.query.filter_by(seller_id=seller_id).all()
             existing_dict = {inv.blanket_id: inv for inv in existing_inventory}
@@ -430,4 +402,153 @@ def register_seller_routes(app):
             }), 200
             
         except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
+    # ============ CUSTOMER ORDERS MANAGEMENT (BROADCAST TO ALL SELLERS) ============
+    
+    @app.route('/api/seller/customer-orders', methods=['GET'])
+    def get_seller_customer_orders():
+        """Get all customer orders - visible to ALL sellers (broadcast system)"""
+        try:
+            status = request.args.get('status')
+            
+            query = CustomerOrder.query
+            
+            if status and status != 'all':
+                query = query.filter_by(status=status)
+            
+            orders = query.order_by(CustomerOrder.order_date.desc()).all()
+            
+            orders_data = []
+            for order in orders:
+                order_dict = order.to_dict()
+                customer = Customer.query.get(order.customer_id)
+                if customer:
+                    order_dict['customer_name'] = f"{customer.first_name} {customer.last_name}"
+                    order_dict['customer_email'] = customer.email
+                    order_dict['customer_phone'] = customer.phone
+                
+                # Add flag indicating if this seller can accept this order
+                # Only pending orders can be accepted
+                order_dict['can_accept'] = order.status == 'Pending'
+                
+                orders_data.append(order_dict)
+            
+            stats = {
+                'total': len(orders_data),
+                'pending': len([o for o in orders_data if o['status'] == 'Pending']),
+                'confirmed': len([o for o in orders_data if o['status'] == 'Confirmed']),
+                'shipped': len([o for o in orders_data if o['status'] == 'Shipped']),
+                'delivered': len([o for o in orders_data if o['status'] == 'Delivered']),
+                'cancelled': len([o for o in orders_data if o['status'] == 'Cancelled'])
+            }
+            
+            return jsonify({
+                'orders': orders_data,
+                'stats': stats
+            }), 200
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    
+    @app.route('/api/seller/customer-order/accept/<string:order_number>', methods=['POST'])
+    def accept_customer_order(order_number):
+        """
+        Seller accepts a customer order - First come first serve
+        Only pending orders can be accepted
+        """
+        try:
+            data = request.get_json()
+            seller_id = data.get('seller_id')
+            
+            if not seller_id:
+                return jsonify({'error': 'seller_id is required'}), 400
+            
+            order = CustomerOrder.query.filter_by(order_number=order_number).first()
+            if not order:
+                return jsonify({'error': 'Order not found'}), 404
+            
+            # Check if order is still pending
+            if order.status != 'Pending':
+                return jsonify({'error': f'Order already {order.status} by another seller'}), 400
+            
+            # Update order - assign to this seller
+            order.seller_id = seller_id
+            order.status = 'Confirmed'
+            order.confirmed_date = datetime.utcnow()
+            
+            db.session.commit()
+            
+            return jsonify({
+                'message': f'Order {order_number} accepted successfully!',
+                'order': order.to_dict()
+            }), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+    
+    
+    @app.route('/api/seller/customer-order/<string:order_number>', methods=['GET'])
+    def get_seller_customer_order_details(order_number):
+        """Get specific customer order details"""
+        try:
+            order = CustomerOrder.query.filter_by(order_number=order_number).first()
+            if not order:
+                return jsonify({'error': 'Order not found'}), 404
+            
+            order_dict = order.to_dict()
+            customer = Customer.query.get(order.customer_id)
+            if customer:
+                order_dict['customer_name'] = f"{customer.first_name} {customer.last_name}"
+                order_dict['customer_email'] = customer.email
+                order_dict['customer_phone'] = customer.phone
+            
+            return jsonify({'order': order_dict}), 200
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    
+    @app.route('/api/seller/customer-order/status/<string:order_number>', methods=['PUT'])
+    def update_seller_customer_order_status(order_number):
+        """
+        Update customer order status (only for orders assigned to this seller)
+        """
+        try:
+            data = request.get_json()
+            seller_id = data.get('seller_id')
+            new_status = data.get('status')
+            
+            order = CustomerOrder.query.filter_by(order_number=order_number).first()
+            if not order:
+                return jsonify({'error': 'Order not found'}), 404
+            
+            # Check if this seller is assigned to this order
+            if order.seller_id != seller_id:
+                return jsonify({'error': 'This order is not assigned to you'}), 403
+            
+            valid_statuses = ['Confirmed', 'Shipped', 'Delivered', 'Cancelled']
+            if new_status not in valid_statuses:
+                return jsonify({'error': f'Invalid status. Must be one of: {valid_statuses}'}), 400
+            
+            old_status = order.status
+            order.status = new_status
+            
+            if new_status == 'Shipped' and not order.shipped_date:
+                order.shipped_date = datetime.utcnow()
+            elif new_status == 'Delivered' and not order.delivered_date:
+                order.delivered_date = datetime.utcnow()
+            
+            db.session.commit()
+            
+            return jsonify({
+                'message': f'Order {order_number} status updated from {old_status} to {new_status}',
+                'order': order.to_dict()
+            }), 200
+            
+        except Exception as e:
+            db.session.rollback()
             return jsonify({'error': str(e)}), 500
